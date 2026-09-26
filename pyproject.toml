@@ -1,0 +1,15 @@
+[project]
+name = "dev"
+version = "0.0.0"
+description = ""
+requires-python = ">=3.11,<4.0"
+
+[tool.ruff.lint]
+ignore = ["FLY002"]
+
+[dependency-groups]
+dev = ["mdformat>=1.0.0"]
+
+[tool.mdformat]
+wrap = 80
+number = true
