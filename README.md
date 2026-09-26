@@ -1,5 +1,10 @@
 # funny-software-defined-networks
 
+## Labs reports
+
+- [Lab 1](./reports/lab1/report.md)
+- [Lab 2](./reports/lab2/report.md)
+
 ## Installation Docs
 
 ### initial configuration
@@ -110,41 +115,13 @@ built binary in `~/floodlight/target/floodlight.jar`
 
 run floodlight service: `java -jar target/floodlight.jar`
 
-## lab report
+### Install wireshark
 
-### Lab 1
+reference: https://launchpad.net/~wireshark-dev/+archive/ubuntu/stable
 
-**Prepare Environment**
+```
+sudo add-apt-repository ppa:wireshark-dev/stable
+sudo apt update
 
-![vm-config](./images/image1.png)
-
-![network-config](./images/image2.png)
-
-**Installing mininet**
-
-![mininet-installation](./images/image3.png)
-
-![mininet-installed](./images/image4.png)
-
-![mininet-pingall](./images/image5.png)
-
-![mininet-linear-topology](./images/image6.png)
-
-**Install floodlight**
-
-![install](./images/image7.png)
-![install-thrift](./images/image8.png)
-
-**Build floodlight binary**
-
-![build-floodlight-binary](./images/image9.png)
-
-**Run floodlight service**
-
-![run-floodlight-service](./images/image10.png)
-![run-floodlight-service](./images/image11.png)
-
-**Result**
-
-![run-floodlight-service](./images/image12.png)
-![run-floodlight-service](./images/image13.png)
+sudo apt-get install wireshark
+```
