@@ -2,9 +2,12 @@
 
 ## Labs reports
 
+[Summary по всем лабам](./SUMMARY.md)
+
 - [Lab 1](./reports/lab1/report.md)
 - [Lab 2](./reports/lab2/report.md)
 - [Lab 3](./reports/lab3/report.md)
+- [Lab 4](./reports/lab4/report.md)
 
 ## Installation Docs
 
