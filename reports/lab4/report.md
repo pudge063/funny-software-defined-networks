@@ -7,7 +7,7 @@ Python API, настраивать параметры каналов (пропу
 потери, размер очереди) и проверять производительность топологий с помощью
 `ping` и `iperf`.
 
-Скрипты (Python 3, Mininet 2.3.0):
+Скрипты (Python 3.10+, Mininet 2.3):
 
 - [LinearTopo.py](./topologies/LinearTopo.py) – линейная топология из
   методички;
@@ -16,7 +16,12 @@ Python API, настраивать параметры каналов (пропу
 - [TreeTopo.py](./topologies/TreeTopo.py) – задание 1, дерево core /
   aggregation / edge / host с fanout `k`;
 - [RingTopo.py](./topologies/RingTopo.py) – задание 2, кольцо коммутаторов с
-  fanout `k` и параметрами `bw`/`delay` для каждого соединения.
+  fanout `k` и параметрами `bw`/`delay` для каждого соединения;
+- [common.py](./topologies/common.py) – общие типы (`LinkOpts`,
+  `ControllerAddr`) и сборка сети с внешним контроллером (`make_net`).
+
+Топологии покрыты тестами (`tests/`, запуск – `make test`, см.
+[README](../../README.md#tests)).
 
 ## Commands
 
@@ -49,22 +54,23 @@ sudo python3 -u RingTopo.py -n 4 -k 2 --stp 2>&1 | grep -vE "Mbit [0-9]+ms|cfs|^
 
 ```python
 class LinearTopo(Topo):
-    "Linear topology of k switches, with one host per switch."
+    """Linear topology of k switches, with one host per switch."""
 
-    def __init__(self, k=2, **opts):
-        super(LinearTopo, self).__init__(**opts)
+    def build(self, k: int = 2) -> None:
         self.k = k
-        lastSwitch = None
-        for i in irange(1, k):
-            host = self.addHost('h%s' % i)
-            switch = self.addSwitch('s%s' % i)
+        last_switch: str | None = None
+        for i in range(1, k + 1):
+            host = self.addHost(f"h{i}")
+            switch = self.addSwitch(f"s{i}")
             self.addLink(host, switch)
-            if lastSwitch:
-                self.addLink(switch, lastSwitch)
-            lastSwitch = switch
+            if last_switch:
+                self.addLink(switch, last_switch)
+            last_switch = switch
 ```
 
-Код из методички переведён на Python 3 (`print(...)`), в остальном не изменён.
+Код из методички переведён на современный Python 3: топология строится в
+`build()` (так рекомендует Mininet 2.2+; `Topo.__init__` сам вызывает `build`),
+вместо `irange` и `'h%s' % i` – `range` и f-строки, добавлены аннотации типов.
 Контроллер по умолчанию – `c0` (reference controller Mininet).
 
 ![linear-topo](./images/image1.png)
@@ -88,12 +94,18 @@ h4 -> h1 h2 h3
 
 ```python
 # 10 Mbps, 5ms delay, 1% loss, 1000 packet queue
-linkopts = dict(bw=10, delay='5ms', loss=1, max_queue_size=1000, use_htb=True)
+DEFAULT_LINKOPTS: LinkOpts = {
+    "bw": 10.0,
+    "delay": "5ms",
+    "loss": 1.0,
+    "max_queue_size": 1000,
+    "use_htb": True,
+}
 ...
-host = self.addHost('h%s' % i, cpu=.5 / k)
+host = self.addHost(f"h{i}", cpu=0.5 / k)
 self.addLink(host, switch, **linkopts)
 ...
-net = Mininet(topo=topo, host=CPULimitedHost, link=TCLink)
+net = make_net(topo, controller, host=CPULimitedHost, link=TCLink)
 ```
 
 ![linear-topo-perf](./images/image2.png)
@@ -125,31 +137,36 @@ aggregation-edge – 50 Мбит/с, 2 мс; edge-host – 10 Мбит/с, 5 м�
 
 ```python
 class CustomTopo(Topo):
-    "Simple data center topology: core, aggregation, edge and host levels with fanout k."
+    """Simple data center topology: core, aggregation, edge and host levels with fanout k."""
 
-    def __init__(self, linkopts1=None, linkopts2=None, linkopts3=None, fanout=2, **opts):
-        super(CustomTopo, self).__init__(**opts)
+    def build(
+        self,
+        linkopts1: LinkOpts | None = None,
+        linkopts2: LinkOpts | None = None,
+        linkopts3: LinkOpts | None = None,
+        fanout: int = 2,
+    ) -> None:
         ...
-        core = self.addSwitch('cs1', dpid='%x' % 0x100)
+        core = self.addSwitch("cs1", dpid=dpid(CORE_DPID, 0))
 
-        a = e = h = 0
-        for _ in irange(1, fanout):
-            a += 1
-            agg = self.addSwitch('as%s' % a, dpid='%x' % (0x200 + a))
+        e = h = 0
+        for a in range(1, fanout + 1):
+            agg = self.addSwitch(f"as{a}", dpid=dpid(AGGREGATION_DPID, a))
             self.addLink(agg, core, **linkopts1)
-            for _ in irange(1, fanout):
+            for _ in range(fanout):
                 e += 1
-                edge = self.addSwitch('es%s' % e, dpid='%x' % (0x300 + e))
+                edge = self.addSwitch(f"es{e}", dpid=dpid(EDGE_DPID, e))
                 self.addLink(edge, agg, **linkopts2)
-                for _ in irange(1, fanout):
+                for _ in range(fanout):
                     h += 1
-                    host = self.addHost('h%s' % h)
+                    host = self.addHost(f"h{h}")
                     self.addLink(host, edge, **linkopts3)
 ```
 
 Mininet вычисляет DPID коммутатора по цифрам в его имени, поэтому у `cs1`,
 `as1` и `es1` он совпал бы. Чтобы этого не было, DPID задан явно: 0x1xx для
-core, 0x2xx для aggregation, 0x3xx для edge.
+core, 0x2xx для aggregation, 0x3xx для edge. Mininet принимает DPID строкой из
+hex-цифр, её формирует `dpid(prefix, number)`.
 
 **k = 2** – 7 коммутаторов, 8 хостов, как на рисунке в методичке:
 
@@ -197,18 +214,23 @@ rtt min/avg/max/mdev = 32.570/32.775/33.228/0.269 ms
 
 ```python
 class RingTopo(Topo):
-    "Ring of n switches, k hosts per switch."
+    """Ring of n switches, k hosts per switch."""
 
-    def __init__(self, n=3, k=3, ringopts=None, hostopts=None, **opts):
-        super(RingTopo, self).__init__(**opts)
+    def build(
+        self,
+        n: int = 3,
+        k: int = 3,
+        ringopts: LinkOpts | None = None,
+        hostopts: LinkOpts | None = None,
+    ) -> None:
         ...
-        switches = [self.addSwitch('s%s' % i) for i in irange(1, n)]
+        switches = [self.addSwitch(f"s{i}") for i in range(1, n + 1)]
 
         h = 0
         for switch in switches:
-            for _ in irange(1, k):
+            for _ in range(k):
                 h += 1
-                host = self.addHost('h%s' % h)
+                host = self.addHost(f"h{h}")
                 self.addLink(host, switch, **hostopts)
 
         for i in range(n):
@@ -224,9 +246,28 @@ learning-switch, широковещательные ARP-запросы ходи�
 - по умолчанию коммутаторы (OpenFlow 1.3) подключаются к Floodlight
   (`RemoteController`, 127.0.0.1:6653). Floodlight находит связи между
   коммутаторами через LLDP и рассылает broadcast только по остовному дереву.
-  Скрипт ждёт 20 с после старта, пока контроллер обнаружит все связи;
+  Скрипт ждёт 20 с после старта (`--discovery-time`), пока контроллер обнаружит
+  все связи. Версию OpenFlow можно сменить ключом `--protocols`;
 - `--stp` – без контроллера: OVS в режиме `standalone` с включённым STP, который
-  блокирует один из портов кольца.
+  блокирует один из портов кольца. Скрипт опрашивает `stp_state` портов в OVS и
+  продолжает, как только все порты перешли в `forwarding` или `blocking`.
+
+При подключении к внешнему контроллеру (`make_net` в `common.py`):
+
+- IPv6 на хостах и портах коммутаторов отключается (`disable_ipv6`). Иначе
+  ядро помечает MLD-отчёты (`skb mark`), OVS 2.17 передаёт метку в OF1.3
+  packet-in как NXM-поле `pkt_mark`, а Floodlight 1.2 не может его разобрать
+  (`OFParseError ... OFOxmVer13: 82436`) и разрывает соединение с коммутатором;
+- MAC-адреса хостов фиксированные (`h4` – `00:00:00:00:00:04`), а после
+  обнаружения связей каждый хост отправляет широковещательный ping
+  (`announce_hosts`). Floodlight не флудит ARP для уже известных ему адресов и
+  шлёт запрос туда, где видел хост в прошлый раз. Без IPv6 хосты сами ничего
+  не отправляют, и после запуска другой сети на том же контроллере ARP уходил
+  бы в старый порт.
+
+`TreeTopo.py` тоже принимает `--controller ip:port`, `--protocols` и
+`--discovery-time`. Без `--controller` он, как и раньше, использует контроллер
+Mininet по умолчанию.
 
 **Кольцо 3 x 3, кольцо 20 Мбит/с / 10 мс, хосты 10 Мбит/с / 1 мс**
 
@@ -277,11 +318,11 @@ rtt min/avg/max/mdev = 24.275/24.304/24.331/0.022 ms
 
 Проверка параметров каналов:
 
-| Конфигурация            | Пара    | Путь                         | Ожидаемый RTT        | Измеренный RTT | iperf         |
+| Конфигурация | Пара | Путь | Ожидаемый RTT | Измеренный RTT | iperf |
 | ----------------------- | ------- | ---------------------------- | -------------------- | -------------- | ------------- |
-| кольцо 20 Мбит/с, 10 мс | h1 - h2 | h1-s1-h2                     | 2 x (1+1) = 4 мс     | 4.2 мс         | –             |
-| кольцо 20 Мбит/с, 10 мс | h1 - h4 | h1-s1-s2-h4                  | 2 x (1+10+1) = 24 мс | 24.3 мс        | 9.5 Мбит/с    |
-| кольцо 5 Мбит/с, 20 мс  | h1 - h4 | h1-s1-s2-h4                  | 2 x (1+20+1) = 44 мс | 44.3 мс        | 4.8 Мбит/с    |
+| кольцо 20 Мбит/с, 10 мс | h1 - h2 | h1-s1-h2 | 2 x (1+1) = 4 мс | 4.2 мс | – |
+| кольцо 20 Мбит/с, 10 мс | h1 - h4 | h1-s1-s2-h4 | 2 x (1+10+1) = 24 мс | 24.3 мс | 9.5 Мбит/с |
+| кольцо 5 Мбит/с, 20 мс | h1 - h4 | h1-s1-s2-h4 | 2 x (1+20+1) = 44 мс | 44.3 мс | 4.8 Мбит/с |
 
 В первом случае самое узкое звено – звено хоста (10 Мбит/с), во втором –
 звено кольца (5 Мбит/с). Задержка и пропускная способность совпадают с
@@ -292,8 +333,7 @@ rtt min/avg/max/mdev = 24.275/24.304/24.331/0.022 ms
 - В Mininet 2.3 контроллер по умолчанию и `TCLink` работают без доработок; для
   Python 3 в коде из методички заменён только `print`.
 - Floodlight 1.2 не разбирает некоторые сообщения OVS 2.17 с расширенными
-  полями Nicira (`OFParseError: Unknown value for discriminator typeLen of class
-  OFOxmVer13: 82436`), и коммутаторы переподключаются. Если запустить новую сеть
+  полями Nicira (`OFParseError: Unknown value for discriminator typeLen of class OFOxmVer13: 82436`), и коммутаторы переподключаются. Если запустить новую сеть
   на том же экземпляре Floodlight, у него остаётся устаревшее состояние, и
   часть хостов оказывается недоступна. Поэтому перед каждым запуском кольца
   контроллер перезапускался, а скрипт ждёт обнаружения связей через LLDP.

@@ -1,54 +1,72 @@
 #!/usr/bin/env python3
+"""Линейная топология с CPULimitedHost и TCLink (bw, delay, loss, очередь)."""
 
-from mininet.topo import Topo
-from mininet.net import Mininet
-from mininet.node import CPULimitedHost
+from __future__ import annotations
+
 from mininet.link import TCLink
-from mininet.util import irange, dumpNodeConnections
 from mininet.log import setLogLevel
+from mininet.node import CPULimitedHost
+from mininet.topo import Topo
+from mininet.util import dumpNodeConnections
+
+from common import ControllerAddr, LinkOpts, announce_hosts, make_net
+
+# 10 Mbps, 5ms delay, 1% loss, 1000 packet queue
+DEFAULT_LINKOPTS: LinkOpts = {
+    "bw": 10.0,
+    "delay": "5ms",
+    "loss": 1.0,
+    "max_queue_size": 1000,
+    "use_htb": True,
+}
 
 
 class LinearTopo(Topo):
-    "Linear topology of k switches, with one host per switch."
+    """Linear topology of k switches, with one host per switch."""
 
-    def __init__(self, k=2, **opts):
-        """Init.
-        k: number of switches (and hosts)
-        hconf: host configuration options
-        lconf: link configuration options"""
-
-        super(LinearTopo, self).__init__(**opts)
-
+    def build(self, k: int = 2, linkopts: LinkOpts | None = None) -> None:
+        """k: number of switches (and hosts)
+        linkopts: options for every link, DEFAULT_LINKOPTS if omitted"""
         self.k = k
+        if linkopts is None:
+            linkopts = DEFAULT_LINKOPTS
 
-        # 10 Mbps, 5ms delay, 1% loss, 1000 packet queue
-        linkopts = dict(bw=10, delay='5ms', loss=1, max_queue_size=1000, use_htb=True)
-
-        lastSwitch = None
-        for i in irange(1, k):
-            host = self.addHost('h%s' % i, cpu=.5 / k)
-            switch = self.addSwitch('s%s' % i)
+        last_switch: str | None = None
+        for i in range(1, k + 1):
+            host = self.addHost(f"h{i}", cpu=0.5 / k)
+            switch = self.addSwitch(f"s{i}")
             self.addLink(host, switch, **linkopts)
-            if lastSwitch:
-                self.addLink(switch, lastSwitch, **linkopts)
-            lastSwitch = switch
+            if last_switch:
+                self.addLink(switch, last_switch, **linkopts)
+            last_switch = switch
 
 
-def perfTest():
-    "Create network and run simple performance test"
-    topo = LinearTopo(k=4)
-    net = Mininet(topo=topo, host=CPULimitedHost, link=TCLink)
+def perf_test(
+    k: int = 4,
+    linkopts: LinkOpts | None = None,
+    controller: ControllerAddr | None = None,
+) -> tuple[float, list[str]]:
+    """Create network and run simple performance test.
+
+    Returns pingAll loss in percent and iperf result (server, client)."""
+    topo = LinearTopo(k=k, linkopts=linkopts)
+    net = make_net(topo, controller, host=CPULimitedHost, link=TCLink)
     net.start()
-    print("Dumping host connections")
-    dumpNodeConnections(net.hosts)
-    print("Testing network connectivity")
-    net.pingAll()
-    print("Testing bandwidth between h1 and h4")
-    h1, h4 = net.get('h1', 'h4')
-    net.iperf((h1, h4))
-    net.stop()
+    try:
+        if controller is not None:
+            net.waitConnected()
+            announce_hosts(net)
+        print("Dumping host connections")
+        dumpNodeConnections(net.hosts)
+        print("Testing network connectivity")
+        loss = net.pingAll()
+        first, last = net.hosts[0], net.hosts[-1]
+        print(f"Testing bandwidth between {first.name} and {last.name}")
+        return loss, net.iperf((first, last))
+    finally:
+        net.stop()
 
 
-if __name__ == '__main__':
-    setLogLevel('info')
-    perfTest()
+if __name__ == "__main__":
+    setLogLevel("info")
+    perf_test()

@@ -2,14 +2,34 @@
 name = "dev"
 version = "0.0.0"
 description = ""
-requires-python = ">=3.11,<4.0"
+requires-python = ">=3.10,<4.0"
 
 [tool.ruff.lint]
 ignore = ["FLY002"]
 
+[tool.ruff.lint.isort]
+known-first-party = [
+  "common",
+  "conftest",
+  "LinearTopo",
+  "LinearTopoPerf",
+  "RingTopo",
+  "TreeTopo",
+]
+
 [dependency-groups]
 dev = ["mdformat>=1.0.0"]
+test = ["pytest>=8", "pytest-timeout>=2.3"]
 
 [tool.mdformat]
 wrap = 80
 number = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["reports/lab4/topologies", "tests"]
+markers = [
+  "integration: real Mininet + Floodlight, needs root (run via `make test`)",
+]
+addopts = "-ra"
+timeout = 300
