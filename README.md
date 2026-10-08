@@ -4,6 +4,7 @@
 
 - [Lab 1](./reports/lab1/report.md)
 - [Lab 2](./reports/lab2/report.md)
+- [Lab 3](./reports/lab3/report.md)
 
 ## Installation Docs
 
