@@ -274,12 +274,6 @@ def floodlight(tmp_path_factory: pytest.TempPathFactory) -> Iterator[Floodlight]
         client.stop()
 
 
-@pytest.fixture
-def fresh_floodlight(floodlight: Floodlight) -> Floodlight:
-    floodlight.reset()
-    return floodlight
-
-
 @pytest.fixture(scope="session")
 def openflow() -> str:
     """Версия OpenFlow для коммутаторов под Floodlight (env OPENFLOW)."""

@@ -17,13 +17,13 @@ $(VENV_PY):
 venv: $(VENV_PY)
 
 test: venv
-	sudo env "PATH=$(PATH)" FLOODLIGHT_JAR=$(FLOODLIGHT_JAR) OPENFLOW=$(OPENFLOW) $(VENV_PY) -m pytest $(PYTEST_ARGS)
+	sudo env "PATH=$(PATH)" FLOODLIGHT_JAR=$(FLOODLIGHT_JAR) OPENFLOW=$(OPENFLOW) $(VENV_PY) -m pytest -p no:cacheprovider $(PYTEST_ARGS)
 
 test-unit: venv
 	$(VENV_PY) -m pytest -m "not integration" $(PYTEST_ARGS)
 
 test-integration: venv
-	sudo env "PATH=$(PATH)" FLOODLIGHT_JAR=$(FLOODLIGHT_JAR) OPENFLOW=$(OPENFLOW) $(VENV_PY) -m pytest -m integration $(PYTEST_ARGS)
+	sudo env "PATH=$(PATH)" FLOODLIGHT_JAR=$(FLOODLIGHT_JAR) OPENFLOW=$(OPENFLOW) $(VENV_PY) -m pytest -p no:cacheprovider -m integration $(PYTEST_ARGS)
 
 clean:
 	sudo mn -c

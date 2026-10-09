@@ -11,6 +11,12 @@
 
 Тесты для топологий lab 4 описаны в разделе [Tests](#tests).
 
+## Specifications
+
+Спецификации для агентов – в [openspec/](./openspec/AGENTS.md) (формат
+[OpenSpec](https://github.com/Fission-AI/OpenSpec)). Точка входа и навигация
+по спекам – [openspec/AGENTS.md](./openspec/AGENTS.md).
+
 ## Tests
 
 Топологии из [lab 4](./reports/lab4/topologies) проверяются через `pytest`. Все
