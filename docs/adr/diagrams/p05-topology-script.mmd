@@ -1,0 +1,23 @@
+flowchart TB
+    start(["sudo ./TreeTopo.py / RingTopo.py / LinearTopo*.py"]) --> args["argparse: positive_int,<br/>parse_controller, LinkOpts"]
+    args --> build["Topo.build():<br/>addSwitch / addHost / addLink(bw, delay, ...)"]
+    build --> ctrl{"внешний контроллер?"}
+    ctrl -->|"нет (Linear, Tree по умолчанию)"| local["Mininet(topo, ...)<br/>контроллер c0 на :6653"]
+    ctrl -->|"да (Ring, Tree --controller)"| remote["common.make_net():<br/>OVSSwitch(protocols=OpenFlow13)<br/>+ RemoteController"]
+    remote --> v6["disable_ipv6()<br/>хосты и порты коммутаторов"]
+    local --> start2["net.start()"]
+    v6 --> start2
+    start2 --> wait{"режим"}
+    wait -->|"c0"| test
+    wait -->|"Floodlight"| disc["waitConnected()<br/>sleep --discovery-time (LLDP)<br/>announce_hosts()"]
+    wait -->|"--stp"| stp["wait_stp(): опрос stp_state<br/>до forwarding / blocking"]
+    disc --> test
+    stp --> test
+    test["dumpNodeConnections<br/>pingAll<br/>ping -c 4 (RTT)<br/>iperf (bw)"] --> cli{"--cli?"}
+    cli -->|"да"| mncli["mininet CLI"]
+    cli -->|"нет"| stop
+    mncli --> stop["finally: net.stop()"]
+    classDef step fill:#e7f6ec,stroke:#2f9e57,color:#0d3d20
+    classDef fl fill:#e8f0fe,stroke:#3b6fd8,color:#0b2a6f
+    class build,local,start2,test,stop,mncli,stp step
+    class remote,v6,disc fl

@@ -1,5 +1,14 @@
 # funny-software-defined-networks
 
+## Architecture
+
+![Архитектура стенда SDN](./docs/adr/diagrams/architecture.svg)
+
+- [Схемы процессов](./docs/adr/processes.md) – подключение коммутаторов,
+  реактивная пересылка, ACL, запуск топологий, тесты, дефекты Floodlight;
+- [Architecture Decision Records](./docs/adr/README.md) – почему стенд
+  устроен именно так.
+
 ## Labs reports
 
 [Summary по всем лабам](./SUMMARY.md)

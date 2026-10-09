@@ -1,0 +1,77 @@
+flowchart TB
+    user(["Оператор / агент"])
+    browser(["Браузер"])
+
+    subgraph repo["Репозиторий (код и тесты)"]
+        direction LR
+        make["Makefile<br/>make test"]
+        tests["tests/ (pytest)<br/>unit + integration"]
+        scripts["reports/lab4/topologies<br/>Linear, Tree, Ring<br/>common.py"]
+        make --> tests
+        tests -->|"импорт"| scripts
+    end
+
+    subgraph dp["Плоскость данных: Mininet 2.3 + Open vSwitch 2.17"]
+        direction TB
+        mnapi["Mininet<br/>Python API и CLI (mn)"]
+        hosts["Хосты h1..hN<br/>network namespaces"]
+        cgroup["CPULimitedHost<br/>cgroups: доля CPU"]
+        links["Каналы veth + TCLink<br/>tc htb/netem: bw, delay, loss"]
+        ovs["Open vSwitch<br/>мосты s1..sN<br/>таблицы потоков"]
+        mnapi -->|"создаёт"| hosts
+        mnapi -->|"ограничивает"| cgroup
+        mnapi -->|"настраивает"| links
+        mnapi -->|"создаёт"| ovs
+        hosts <-->|"пакеты"| links
+        links <-->|"пакеты"| ovs
+    end
+
+    subgraph cp["Плоскость управления: Floodlight v1.2 (Java 8)"]
+        direction TB
+        ofmgr["OFSwitchManager<br/>handshake, роли, ECHO"]
+        lldp["LinkDiscoveryManager<br/>LLDP: связи коммутаторов"]
+        dev["DeviceManager<br/>хосты: MAC, IP, порт"]
+        topo["TopologyManager<br/>граф, остовное дерево"]
+        fwd["Forwarding<br/>реактивные правила, prio 1"]
+        acl["ACL<br/>проактивный DROP, prio 30000"]
+        rest["REST API и Web UI<br/>:8080 /wm/*, /ui"]
+        ofmgr --> lldp
+        ofmgr --> dev
+        lldp --> topo
+        topo --> fwd
+        dev --> fwd
+        rest --> acl
+        fwd -->|"FLOW_MOD<br/>PACKET_OUT"| ofmgr
+        acl -->|"FLOW_MOD drop"| ofmgr
+    end
+
+    subgraph obs["Наблюдение"]
+        direction TB
+        tshark["tshark / Wireshark<br/>tcp port 6653"]
+        ofctl["ovs-ofctl / ovs-vsctl<br/>dump-flows, stp_state"]
+    end
+
+    ovs <==>|"OpenFlow 1.3 / TCP 6653<br/>PACKET_IN, PACKET_OUT,<br/>FLOW_MOD, ECHO"| ofmgr
+
+    user -->|"sudo ./RingTopo.py<br/>sudo mn, make test"| repo
+    scripts -->|"строит сеть"| mnapi
+    tests -->|"REST: switches, links"| rest
+    tests -.->|"запуск / перезапуск"| cp
+    browser -->|"HTTP :8080"| rest
+    tshark -.->|"захват"| ofmgr
+    ofctl -.->|"чтение"| ovs
+
+    classDef control fill:#e8f0fe,stroke:#3b6fd8,color:#0b2a6f
+    classDef data fill:#e7f6ec,stroke:#2f9e57,color:#0d3d20
+    classDef tool fill:#fff4e0,stroke:#d08b16,color:#4a2f00
+    classDef code fill:#f3eafd,stroke:#8a4fd6,color:#33115e
+    classDef actor fill:#ffffff,stroke:#555,color:#111
+    class ofmgr,lldp,topo,dev,fwd,acl,rest control
+    class mnapi,ovs,hosts,links,cgroup data
+    class tshark,ofctl tool
+    class scripts,tests,make code
+    class user,browser actor
+    style repo fill:#faf6ff,stroke:#8a4fd6
+    style dp fill:#f4fbf6,stroke:#2f9e57
+    style cp fill:#f4f8ff,stroke:#3b6fd8
+    style obs fill:#fffaf0,stroke:#d08b16

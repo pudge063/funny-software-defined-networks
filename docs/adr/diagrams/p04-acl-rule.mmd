@@ -1,0 +1,23 @@
+sequenceDiagram
+    autonumber
+    actor Op as Оператор
+    participant REST as Floodlight REST / UI
+    participant ACL as ACL module
+    participant S1 as s1 (edge h1)
+    participant FL as Forwarding
+    participant H1 as h1
+    participant H4 as h4
+    Op->>REST: POST /wm/acl/rules/json<br/>{src-ip 10.0.0.1/32, dst-ip 10.0.0.4/32, nw-proto ICMP, action DENY}
+    REST->>ACL: добавить правило
+    ACL->>S1: FLOW_MOD ADD priority=30000, idle=0, hard=0,<br/>match icmp,nw_src=10.0.0.1,nw_dst=10.0.0.4, без действий
+    Note over S1: dump-flows: priority=30000 ... actions=drop
+    H1->>S1: ICMP echo 10.0.0.1 -> 10.0.0.4
+    S1-->>S1: совпадение prio 30000 -> drop (n_packets++)
+    Note over S1,FL: PACKET_IN нет -> контроллер не участвует
+    H4->>S1: ICMP echo 10.0.0.4 -> 10.0.0.1 (через s4..s2)
+    S1->>FL: PACKET_IN (table-miss)
+    FL->>S1: FLOW_MOD priority 1 на s1..s4, PACKET_OUT
+    S1->>H1: echo request доставлен
+    H1->>S1: echo reply 10.0.0.1 -> 10.0.0.4
+    S1-->>S1: совпадение prio 30000 -> drop
+    Note over H1,H4: итог pingall: 16% dropped (10/12),<br/>недоступны только пары h1-h4 и h4-h1

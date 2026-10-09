@@ -8,7 +8,7 @@ FLOODLIGHT_JAR ?= $(HOME)/floodlight/target/floodlight.jar
 PYTEST_ARGS   ?=
 OPENFLOW      ?= OpenFlow13
 
-.PHONY: venv test test-unit test-integration clean
+.PHONY: venv test test-unit test-integration clean diagrams
 
 $(VENV_PY):
 	$(PYTHON) -m venv --without-pip --system-site-packages $(VENV)
@@ -28,3 +28,7 @@ test-integration: venv
 clean:
 	sudo mn -c
 	rm -rf $(VENV) .pytest_cache
+
+# схемы docs/adr/diagrams/*.mmd -> *.svg (нужен Node.js, mermaid-cli через npx)
+diagrams:
+	docs/adr/diagrams/render.sh

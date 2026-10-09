@@ -192,14 +192,15 @@ MUST передавать `PATH` и отключать кеш pytest (`-p no:cac
 
 ### R1. Структура репозитория
 
-| Путь                        | Содержимое                                               |
-| --------------------------- | -------------------------------------------------------- |
-| `README.md`                 | установка стенда, раздел Tests                           |
-| `SUMMARY.md`                | сводка по всем лабам                                     |
-| `reports/labN/report.md`    | отчёт лабы N                                             |
-| `reports/labN/images/`      | скриншоты отчёта лабы N                                  |
-| `reports/lab4/topologies/`  | исполняемые топологии и `common.py`                      |
-| `tests/`                    | pytest: `conftest.py`, unit и integration                |
-| `Makefile`                  | `venv`, `test`, `test-unit`, `test-integration`, `clean` |
-| `pyproject.toml`, `uv.lock` | зависимости, конфиги ruff/mdformat/pytest                |
-| `openspec/`                 | спецификации для агентов                                 |
+| Путь                        | Содержимое                                                      |
+| --------------------------- | --------------------------------------------------------------- |
+| `README.md`                 | установка стенда, раздел Tests                                  |
+| `SUMMARY.md`                | сводка по всем лабам                                            |
+| `reports/labN/report.md`    | отчёт лабы N                                                    |
+| `reports/labN/images/`      | скриншоты отчёта лабы N                                         |
+| `reports/lab4/topologies/`  | исполняемые топологии и `common.py`                             |
+| `tests/`                    | pytest: `conftest.py`, unit и integration                       |
+| `Makefile`                  | `venv`, `test`, `test-unit`, `test-integration`, `clean`        |
+| `pyproject.toml`, `uv.lock` | зависимости, конфиги ruff/mdformat/pytest                       |
+| `openspec/`                 | спецификации для агентов                                        |
+| `docs/adr/`                 | ADR, схемы архитектуры и процессов (`diagrams/*.mmd` → `*.svg`) |

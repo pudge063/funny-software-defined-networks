@@ -1,0 +1,25 @@
+sequenceDiagram
+    autonumber
+    participant H1 as h1
+    participant OVS as OVS (новая сеть)
+    participant FL as Floodlight (помнит прошлую сеть)
+    participant H4 as h4
+    rect rgb(253, 236, 234)
+    Note over H1,H4: без обхода
+    H1->>OVS: ARP who-has 10.0.0.4
+    OVS->>FL: PACKET_IN
+    FL-->>FL: 10.0.0.4 известен (flood-arp=NO)<br/>точка подключения из прошлой сети
+    FL->>OVS: PACKET_OUT в устаревший порт
+    Note over H4: запрос не доходит, h4 молчит (IPv6 выключен)
+    H1-->>H1: ARP INCOMPLETE, ping 100% loss
+    end
+    rect rgb(231, 246, 236)
+    Note over H1,H4: с обходом common.announce_hosts()
+    H4->>OVS: ping -b 10.255.255.255 (broadcast)
+    OVS->>FL: PACKET_IN от h4
+    FL-->>FL: DeviceManager: точка подключения h4 обновлена
+    H1->>OVS: ARP who-has 10.0.0.4
+    FL->>OVS: PACKET_OUT в актуальный порт
+    OVS->>H4: ARP request -> reply -> ping OK
+    end
+    Note over FL: в тестах дополнительно: перезапуск Floodlight перед<br/>каждой топологией (устаревшие LLDP-связи живут до 35 с)

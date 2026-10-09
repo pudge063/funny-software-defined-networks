@@ -24,6 +24,14 @@
 | [`lab3-acl-flow-rules`](./specs/lab3-acl-flow-rules/spec.md)         | lab 3, ACL                       | создать правило ACL (UI/REST); ожидаемый `FLOW_MOD` priority 30000; `dump-flows`; `16% dropped`; фильтры tshark; приоритеты правил                                                                             |
 | [`lab4-mininet-topologies`](./specs/lab4-mininet-topologies/spec.md) | lab 4, топологии и тесты         | API `common.py`; контракты `LinearTopo`/`LinearTopoPerf`/`CustomTopo`/`RingTopo`; CLI-флаги и умолчания; DPID; STP; ожидаемые RTT и iperf; `make test`; фикстуры и состав тестов                               |
 
+Архитектурные решения («почему») и схемы процессов – вне `openspec/`:
+
+| Документ                                            | Искать здесь, если нужно…                                                           |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| [`docs/adr/README.md`](../docs/adr/README.md)       | общая схема архитектуры; реестр ADR                                                 |
+| [`docs/adr/processes.md`](../docs/adr/processes.md) | схемы сценариев P1–P10: handshake, PACKET_IN, ACL, запуск топологий, тесты, дефекты |
+| `docs/adr/NNNN-*.md`                                | причины решений и отвергнутые альтернативы для обходов и ограничений                |
+
 ### Быстрый поиск по задаче
 
 | Задача                                                 | Документ → раздел                                                                             |
@@ -39,6 +47,8 @@
 | Ответить на контрольные вопросы lab 2 / lab 3          | `lab2-openflow-capture`, `lab3-acl-flow-rules` → сценарии «Ответ на…» / таблицы               |
 | Добавить новую лабу                                    | `sdn-lab-environment` → «Структура репозитория»                                               |
 | Оформить Markdown                                      | `project.md` → Documentation Style                                                            |
+| Понять, почему сделано именно так                      | `docs/adr/` → ADR по теме                                                                     |
+| Обновить схему                                         | `docs/adr/diagrams/*.mmd` → `make diagrams`                                                   |
 
 ## 3. Источники истины
 

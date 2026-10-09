@@ -1,0 +1,16 @@
+flowchart LR
+    A["sudo tshark -i any<br/>-f 'tcp port 6653'<br/>-w capture.pcap"] --> B["java -jar floodlight.jar"]
+    B --> C["sudo mn --topo linear,4<br/>protocols=OpenFlow13<br/>--controller=remote"]
+    C --> D["mininet> pingall<br/>h1 ping h4"]
+    D --> E["остановить захват"]
+    E --> F["tshark -r capture.pcap<br/>-Y openflow_v4"]
+    F --> G{"тип сообщения"}
+    G -->|"ECHO_REQUEST/REPLY"| G1["keep-alive"]
+    G -->|"PACKET_IN"| G2["table-miss:<br/>пакет на контроллер"]
+    G -->|"FLOW_MOD"| G3["установка правила"]
+    G -->|"PACKET_OUT"| G4["OFPAT_OUTPUT:<br/>отправка в порт"]
+    F --> H["tshark -V / Wireshark:<br/>детальный разбор полей"]
+    classDef step fill:#e8f0fe,stroke:#3b6fd8,color:#0b2a6f
+    classDef res fill:#e7f6ec,stroke:#2f9e57,color:#0d3d20
+    class A,B,C,D,E,F,H step
+    class G1,G2,G3,G4 res

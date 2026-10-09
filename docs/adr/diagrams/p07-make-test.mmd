@@ -1,0 +1,21 @@
+flowchart TB
+    mk(["make test"]) --> venv{".venv есть?"}
+    venv -->|"нет"| create["/usr/bin/python3 -m venv<br/>--without-pip --system-site-packages<br/>pip install pytest pytest-timeout"]
+    venv -->|"да"| run
+    create --> run["sudo env PATH FLOODLIGHT_JAR OPENFLOW<br/>.venv/bin/python -m pytest -p no:cacheprovider"]
+    run --> order["pytest_collection_modifyitems:<br/>этап 0 -> 1 -> 2"]
+    order --> u["Этап 0: unit (tests/test_topologies.py)<br/>фикстура topo_case x TOPO_CASES<br/>структура, типы LinkOpts, DPID, CLI"]
+    u --> gate{"unit упали?"}
+    gate -->|"да"| skip["integration: SKIPPED"]
+    gate -->|"нет"| m["Этап 1: Mininet без Floodlight<br/>simple_test(k=4) с c0<br/>кольцо 4x2 + STP"]
+    m --> f["Этап 2: Mininet + Floodlight<br/>фикстура floodlight (session)<br/>floodlight_net (module) x 5 топологий"]
+    f --> chk["REST: switches == DPID сети<br/>links == связи сети<br/>pingAll == 0<br/>iperf в пределах bw_min"]
+    chk --> done(["108 passed, ~2.5 мин<br/>Floodlight остановлен"])
+    classDef unit fill:#f3eafd,stroke:#8a4fd6,color:#33115e
+    classDef mn fill:#e7f6ec,stroke:#2f9e57,color:#0d3d20
+    classDef fl fill:#e8f0fe,stroke:#3b6fd8,color:#0b2a6f
+    classDef bad fill:#fdecea,stroke:#c62828,color:#5f0d0d
+    class u unit
+    class m mn
+    class f,chk fl
+    class skip bad

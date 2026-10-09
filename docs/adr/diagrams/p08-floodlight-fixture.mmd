@@ -1,0 +1,28 @@
+sequenceDiagram
+    autonumber
+    participant PT as pytest
+    participant FX as фикстура floodlight
+    participant FL as Floodlight (java)
+    participant NF as фикстура floodlight_net
+    participant MN as Mininet / OVS
+    PT->>FX: session setup
+    alt REST :8080 уже отвечает
+        FX-->>PT: использовать внешний Floodlight (без перезапусков)
+    else порт свободен
+        FX->>FL: java -jar floodlight.jar (cwd ~/floodlight)
+        FX->>FL: ждать REST до 90 с
+    end
+    loop для каждой топологии FLOODLIGHT_CASES (scope=module)
+        PT->>NF: setup
+        NF->>MN: mininet.clean.cleanup()
+        NF->>FX: reset(): stop + start (только свой процесс)
+        NF->>MN: make_net(topo, controller, OpenFlow13), net.start()
+        MN->>FL: OpenFlow handshake
+        NF->>MN: waitConnected(30 с)
+        NF->>FL: GET /wm/core/controller/switches/json до совпадения DPID (30 с)
+        NF->>FL: GET /wm/topology/links/json до точного совпадения (90 с)
+        NF->>MN: announce_hosts()
+        PT->>MN: test_floodlight_sees_topology / test_ping_all / test_iperf_*
+        PT->>NF: teardown: net.stop(), cleanup()
+    end
+    PT->>FX: session teardown: terminate Floodlight

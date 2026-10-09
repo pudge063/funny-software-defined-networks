@@ -1,0 +1,21 @@
+sequenceDiagram
+    autonumber
+    participant K as Ядро Linux (порт sX-ethY)
+    participant OVS as OVS 2.17
+    participant FL as Floodlight 1.2
+    rect rgb(253, 236, 234)
+    Note over K,FL: без обхода
+    K->>OVS: MLDv2 report (icmp6 type 143), skb->mark = 0xd4
+    OVS->>FL: OF1.3 PACKET_IN, match: pkt_mark=0xd4 (NXM 0x00014204)
+    FL-->>FL: OFParseError: Unknown value for discriminator typeLen 82436
+    FL->>OVS: разрыв соединения
+    OVS->>FL: переподключение, handshake заново
+    Note over OVS,FL: коммутатор «мигает», связи и правила теряются
+    end
+    rect rgb(231, 246, 236)
+    Note over K,FL: с обходом common.disable_ipv6()
+    K-->>K: net.ipv6.conf.*.disable_ipv6=1 до net.start()
+    Note over K,OVS: MLD не генерируется
+    OVS->>FL: PACKET_IN только IPv4/ARP/LLDP
+    Note over FL: OFParseError = 0
+    end

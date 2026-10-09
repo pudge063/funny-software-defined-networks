@@ -1,0 +1,28 @@
+sequenceDiagram
+    autonumber
+    actor Op as Оператор
+    participant FL as Floodlight
+    participant MN as Mininet
+    participant OVS as OVS s1..s4
+    Op->>FL: cd ~/floodlight && java -jar target/floodlight.jar
+    FL-->>FL: слушает :6653 (OpenFlow) и :8080 (REST/UI)
+    Op->>MN: sudo mn --topo linear,4 --switch ovsk,protocols=OpenFlow13 --controller=remote,ip=127.0.0.1,port=6653
+    MN->>OVS: создаёт мосты, хосты (netns), veth-каналы
+    OVS->>FL: TCP connect :6653
+    OVS->>FL: OFPT_HELLO
+    FL->>OVS: OFPT_HELLO (согласование версии: OF_13)
+    FL->>OVS: OFPT_FEATURES_REQUEST
+    OVS->>FL: OFPT_FEATURES_REPLY (DPID, порты)
+    FL->>OVS: OFPT_ROLE_REQUEST (MASTER), очистка таблиц
+    FL->>OVS: FLOW_MOD table-miss: priority=0 actions=CONTROLLER
+    loop каждые ~15 с
+        FL->>OVS: PACKET_OUT LLDP во все порты
+        OVS->>FL: PACKET_IN LLDP с соседнего коммутатора
+        FL-->>FL: LinkDiscovery: связь s_i <-> s_j
+    end
+    loop каждые ~2 с
+        FL->>OVS: OFPT_ECHO_REQUEST
+        OVS->>FL: OFPT_ECHO_REPLY
+    end
+    Op->>FL: http://127.0.0.1:8080/ui -> Topology
+    FL-->>Op: 4 коммутатора, 4 хоста (после трафика хостов)

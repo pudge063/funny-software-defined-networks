@@ -1,0 +1,7 @@
+{
+  "theme": "default",
+  "htmlLabels": false,
+  "flowchart": { "htmlLabels": false, "curve": "basis", "nodeSpacing": 40, "rankSpacing": 55 },
+  "sequence": { "mirrorActors": false, "showSequenceNumbers": true, "wrap": true },
+  "themeVariables": { "fontFamily": "Helvetica, Arial, sans-serif", "fontSize": "14px" }
+}

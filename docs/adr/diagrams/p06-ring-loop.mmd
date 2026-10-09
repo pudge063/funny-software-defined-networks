@@ -1,0 +1,20 @@
+flowchart LR
+    subgraph ring["Кольцо n x k"]
+        direction LR
+        s1((s1)) --- s2((s2))
+        s2 --- s3((s3))
+        s3 --- s1
+    end
+    bc["broadcast ARP<br/>от h1"] --> s1
+    s1 --> q{"чем разорвана<br/>петля?"}
+    q -->|"ничем<br/>(learning switch)"| storm["бесконечная циркуляция<br/>broadcast storm"]
+    q -->|"Floodlight"| fl["LLDP -> граф топологии<br/>FLOOD только по остовному дереву<br/>маршруты по кратчайшему пути"]
+    q -->|"--stp"| stp["OVS standalone + STP<br/>один порт кольца в blocking<br/>wait_stp() ждёт сходимости"]
+    fl --> ok["pingall 0% dropped"]
+    stp --> ok
+    classDef bad fill:#fdecea,stroke:#c62828,color:#5f0d0d
+    classDef good fill:#e7f6ec,stroke:#2f9e57,color:#0d3d20
+    classDef ctl fill:#e8f0fe,stroke:#3b6fd8,color:#0b2a6f
+    class storm bad
+    class ok good
+    class fl,stp ctl

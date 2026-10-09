@@ -1,0 +1,24 @@
+sequenceDiagram
+    autonumber
+    participant H1 as h1 (10.0.0.1)
+    participant S1 as s1
+    participant S4 as s4 (путь s1-s2-s3-s4)
+    participant FL as Floodlight Forwarding
+    participant H4 as h4 (10.0.0.4)
+    H1->>S1: ARP who-has 10.0.0.4 (broadcast)
+    S1->>FL: PACKET_IN (table-miss)
+    FL->>S1: PACKET_OUT actions=FLOOD по остовному дереву
+    S1-->>S4: ARP по пути
+    S4->>H4: ARP request
+    H4->>S4: ARP reply
+    S4->>FL: PACKET_IN
+    FL-->>FL: DeviceManager: h1, h4 известны, маршрут по TopologyManager
+    FL->>S4: FLOW_MOD (priority 1, idle 5 с) на каждый коммутатор пути
+    FL->>S4: PACKET_OUT actions=OUTPUT:port
+    S4-->>H1: ARP reply
+    H1->>S1: ICMP echo request
+    S1->>FL: PACKET_IN (первый пакет потока)
+    FL->>S1: FLOW_MOD x4 (s1..s4), priority 1
+    FL->>S1: PACKET_OUT actions=OUTPUT:port
+    S1-->>H4: ICMP по установленным правилам
+    Note over S1,S4: последующие пакеты потока идут без контроллера,<br/>пока правило не простоит 5 с без трафика
